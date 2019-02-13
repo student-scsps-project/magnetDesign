@@ -1,5 +1,5 @@
 """
-A parametric fit of the critical current for varying B field.
+Plotting the load line for our quad
 Luke A.Dyks
 """
 
@@ -13,6 +13,17 @@ from matplotlib import rc
 ## for Palatino and other serif fonts use:
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 rc('text', usetex=True)
+
+####READ IN CURRENT FILE
+filename = "quadCurrents.dat"
+infile = open(filename)
+dt = [("#I","f"),("grad","f"),("B","f")]
+A = np.loadtxt(filename, dtype=dt)
+iQuad = A["#I"]
+poleTipField = A["B"]
+
+
+
 
 #Fitting Parameters
 alpha = 0.57
@@ -39,24 +50,30 @@ def jc (bMax,t): #function to calculate jc at one temp, up to Bmax
     return ((jcRef * c * np.power(b,alpha - 1))/(np.power(bc2,alpha))) * np.power(1 - (b/bc2), beta) * np.power(1 - (t/tco)**1.7,gamma)
 
 
-jc42 = jc(11,4.2)
-jc19 = jc(14,1.9)
+jc42 = jc(11,4.2)/1e6
+jc19 = jc(14,1.9)/1e6
+
+I42 = jc42 * (26/ 2.5 ) * (np.pi * 0.825**2 / 4)
+I19 = jc19 * (26/2.5) * (np.pi * 0.825**2 / 4)
+
+
 
 x42 = np.arange(1,11,0.5)
 x19 = np.arange(1,14,0.5)
 
-titre='criticalCurrentWithB'
+titre='quadLoadLine'
 plt.figure(figsize=(7.2,3.6))
 
 plt.xlabel('B [T]')
-plt.ylabel('j$_c$ [A/mm$^2$]')
-plt.ylim(0,7500)
+plt.ylabel('I [A]')
+plt.xlim(0,10)
+plt.ylim(0,20000)
 
 plt.grid(color='lightgrey', linestyle='-', linewidth=0.5)
 
-plt.plot(x19,jc19/1e6,'r', label = "1.9 K")
-plt.plot(x42,jc42/1e6,'b', label = "4.2 K")
-
+plt.plot(x19,I19,'r', label = "1.9 K")
+plt.plot(x42,I42,'b', label = "4.2 K")
+plt.plot(poleTipField,iQuad,'g', label = "B Peak Coil")
 plt.legend()
 
 plt.savefig(titre + ".pdf",format = "pdf")
