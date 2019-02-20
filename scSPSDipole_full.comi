@@ -1,0 +1,186 @@
+/clears previous stuff
+clear 
+yes
+
+
+/sets the finite element analysis
+set symmetry=xy solution=at element=quadratic field=magnetic 
+/sets the units that we work in
+units length=mm flux=tesla field=am vector=wbm conductivity=smm curd=amm2 force=newton energy=joule power=watt mass=kg scalar=amp
+
+//////////////////////////////////////////////////////////////// TURN ON AND OFF!!
+/gives you a fixed aspect ratio view
+section fixedaspect=yes
+
+/ parameters
+/ declare string -- filename in this case
+$string filename 'test_qrt'
+
+/ current -- just a variable -- variables start with a hash
+#curr=11750
+
+/ parameters for yoke geometry
+/ sets the basic parameters of the geometry -- all JUST variables, in this case in mm
+#r_in_yoke=60
+#r_out_yoke=230 
+/engineers outer radius
+#y_hole_yoke=145
+#r_hole_yoke=0
+
+/ radius for background -- How much do we wish to compute
+#r_bck=300
+
+/ a constant permeability, to run a linear analysis just in case
+/ more important in 3d, saves a lot of computation time
+#mu=4000
+
+/ meshing factor -- arbitary name -- gives finite element mesh -- fiddle around with this -- see if results change
+#mshf=1 
+
+
+/ current density for blocks -- n turns of wire * current / area of block
+#crrd_1=12*#curr/237.12
+#crrd_2=9*#curr/177.84
+#crrd_3=5*#curr/98.8
+#crrd_4=2*#curr/39.52
+
+draw shape=poly material=1 density=#crrd_1 perm=1
+cart xp=45 yp=0.1
+cart xp=56 yp=0.1 curv=0 n=#mshf*11
+cart xp=50.98 yp=23.175 curv=-1/56 n=#mshf*1.8*19
+cart xp=40.966 yp=18.623 curv=0 n=#mshf*11
+fini curv=1/45 n=#mshf*1.6*19
+quitdraw
+draw shape=poly material=1 density=#crrd_2 perm=1
+cart xp=38.061 yp=24.008
+cart xp=47.365 yp=29.876 curv=0 n=#mshf*11
+cart xp=35.562 yp=43.259 curv=-1/56 n=#mshf*1.8*19
+cart xp=28.577 yp=34.762 curv=0 n=#mshf*11
+fini curv=1/45 n=#mshf*1.6*19
+quitdraw
+draw shape=poly material=1 density=#crrd_3 perm=1
+cart xp=22.307 yp=39.082
+cart xp=27.76 yp=48.635 curv=0 n=#mshf*11
+cart xp=18.722 yp=52.778 curv=-1/56 n=#mshf*1.8*19
+cart xp=15.045 yp=42.411 curv=0 n=#mshf*11
+fini curv=1/45 n=#mshf*1.6*19
+quitdraw
+draw shape=poly material=1 density=#crrd_4 perm=1
+cart xp=9.073 yp=44.076
+cart xp=11.29 yp=54.85 curv=0 n=#mshf*11
+cart xp=7.365 yp=55.514 curv=-1/56 n=#mshf*1.8*19
+cart xp=5.918 yp=44.609 curv=0 n=#mshf*11
+fini curv=1/45 n=#mshf*1.6*19
+quitdraw
+
+/ yoke
+draw shape=poly material=3 density=0 perm=#mu
+  cart xp=#r_in_yoke yp=0  
+  cart xp=#r_out_yoke curv=0 n=#mshf*(#r_out_yoke-#r_in_yoke)/5
+  cart xp=0 yp=#r_out_yoke curv=-1/#r_out_yoke n=#mshf*(pi*#r_out_yoke/2)/5
+  cart yp=#y_hole_yoke+#r_hole_yoke curv=0 n=#mshf*(#r_out_yoke-#y_hole_yoke-#r_hole_yoke)/5
+  cart yp=#y_hole_yoke-#r_hole_yoke curv=1/#r_hole_yoke n=#mshf*(pi*#r_hole_yoke)/5
+  cart yp=#r_in_yoke curv=0 n=#mshf*(#y_hole_yoke-#r_hole_yoke-#r_in_yoke)/5
+  fini n=10 curv=1/#r_in_yoke n=#mshf*(pi*#r_in_yoke/2)/5
+quitdraw
+
+
+/ material properties
+/ use file tenten -- in the same folder -- probably use this
+bhdata material=3 type=isotropic 
+  loadbh file='tenten'
+quitbh
+
+
+
+
+/ aperture (finer mesh) -- for where the beam pipe is -- ie the important bit
+/ radius of aperture -- in this case the inner radius of yolk -- material zero ie vacuum REMEMEBER TO SET THESE!!
+#r_gfr=#r_in_yoke
+draw shape=poly material=0 perm=1 density=0
+  cart xp=0 yp=0
+  cart xp=#r_gfr curv=0 n=#mshf*35
+  cart xp=0 yp=#r_gfr curv=-1/#r_gfr n=#mshf*35*pi/2
+  fini n=#mshf*35 curv=0
+quitdraw
+
+/ mirror copies
+copy reg1=1 reg2=6 dx=0 dy=0 mirror=yes theta=90 
+copy reg1=1 reg2=12 dx=0 dy=0 mirror=yes theta=180 
+
+/ change sign current density
+modify reg1=7 reg2=7 dens=-#crrd_1
+modify reg1=8 reg2=8 dens=-#crrd_2
+modify reg1=9 reg2=9 dens=-#crrd_3
+modify reg1=10 reg2=10 dens=-#crrd_4
+modify reg1=19 reg2=19 dens=-#crrd_1
+modify reg1=20 reg2=20 dens=-#crrd_2
+modify reg1=21 reg2=21 dens=-#crrd_3
+modify reg1=22 reg2=22 dens=-#crrd_4
+
+/ background
+draw shape=background material=0 perm=1 density=0
+  cart xp=-#r_bck yp=0 
+  cart xp=0 yp=-#r_bck f=v n=#mshf*20 curv=-1/#r_bck
+  cart xp=#r_bck yp=0 f=v 
+  cart xp=0 yp=#r_bck f=v 
+  fini f=v
+quitdraw
+
+
+/ solve
+solve type=st
+  data linear=no niterations=50 tolerance=1.0e-04 ittype=newton restart=yes
+quitsolve
+
+
+
+$exist '&filename&.op2'
+$if fileexists eq 1
+  write file='&filename&.op2' solvenow=yes
+  yes
+$elif fileexists eq 0
+  write file='&filename&.op2' solvenow=yes
+$end if
+
+/ post-processing
+
+/ display options for post-processing
+reco reg1=1 reg2=* material=all not=any mesh=no background=yes phase=no erase=yes fill=material nodes=none label=no axes=yes 
+reco xmin=0 xmax=700 ymin=0 ymax=270 reg1=1 reg2=* material=all not=any mesh=no background=yes phase=no erase=yes fill=material nodes=none label=no axes=yes
+
+/ plot of field + flux lines
+$cons #b_from 0
+$cons #b_to 6
+contour component=bmod style=zone label=values automatic=no start=#b_from finish=#b_to lines=100 reg1=1 reg2=* material=all not=any deformed=no homogeneity=no erase=yes
+contour component=pot style=line label=no automatic=yes lines=20 colour=text reg1=1 reg2=* material=all not=any deformed=no homogeneity=no erase=no
+
+/ plot of field (coil only) + flux lines
+$cons #b_from 0
+$cons #b_to 6
+contour component=bmod style=zone label=values automatic=no start=#b_from finish=#b_to lines=100 reg1=1 reg2=4 material=all not=any deformed=no homogeneity=no erase=yes
+contour component=pot style=line label=no automatic=yes lines=20 colour=text reg1=1 reg2=* material=all not=any deformed=no homogeneity=no erase=no
+
+/ central field
+point method=cart xp=0 yp=0
+$cons #Bc By
+
+/ peak field
+contour component=bmod style=zone label=values automatic=yes lines=100 reg1=1 reg2=4 erase=yes
+#Bpeak=maximum
+#lambda=#Bpeak/#Bc
+
+/ forces
+intarea reg1=1 reg2=4
+
+/ harmonics computation
+#rref=40*2/3 |/ reference radius for the multipoles
+harm x1=#rref y1=0 x2=0 y2=#rref curv=-1/#rref np=100 comp=br/#rref type=four seri=odd peri=4
+$do #i_harm 3 11 2
+  #b%int(#i_harm)=A_%int(#i_harm)/A_1*10000
+$end do
+
+line x1=0 y1=0 y2=y1 x2=27 np=100 curvature=0 component=bmod homogeneity=yes xref=0 yref=0 erase=yes print=no automatic=yes
+
+
+
